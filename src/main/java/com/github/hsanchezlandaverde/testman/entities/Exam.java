@@ -12,7 +12,7 @@ public class Exam {
 	private UUID id;
 	private String title;
 	private String signature;
-	private double minimunApproval;
+	private double minimumApproval;
 	private int duration;
 
 }
