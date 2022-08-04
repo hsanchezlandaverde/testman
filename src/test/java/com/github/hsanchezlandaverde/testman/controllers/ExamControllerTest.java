@@ -17,11 +17,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import static org.hamcrest.Matchers.containsString;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.Mockito.when;
@@ -46,7 +49,7 @@ public class ExamControllerTest {
 	public void testGet_WhenNoResults_ExpectHTTP200AndEmptyJSONList() throws Exception {
 		when(examRepository.findAll()).thenReturn(new ArrayList<Exam>());
 		var expectedBody = getResourceAsString("emptyExamList.json");
-		mockMvc.perform(get(GET_EXAMS_ENDPOINT))
+		mockMvc.perform(get("/api/exams"))
 				.andExpect(status().isOk())
 				.andExpect(content().string(expectedBody));
 	}
@@ -70,7 +73,41 @@ public class ExamControllerTest {
 				.build());
 		when(examRepository.findAll()).thenReturn(exams);
 		var expectedBody = getResourceAsString("examList.json");
-		mockMvc.perform(get(GET_EXAMS_ENDPOINT))
+		mockMvc.perform(get("/api/exams"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(expectedBody));
+	}
+	
+	@Test
+	public void testGetById_GivenInvalidId_ExpectHTTP400AndEmptyJSONObject() throws Exception {
+		var expectedBody = "Invalid UUID string";
+		mockMvc.perform(get("/api/exams/455ee128"))
+				.andExpect(status().isBadRequest())
+				.andExpect(content().string(containsString(expectedBody)));
+	}
+	
+	@Test
+	public void testGetById_WhenNotFound_ExpectHTTP404AndEmptyJSONObject() throws Exception {
+		Optional<Exam> exam = Optional.empty();
+		when(examRepository.findById(UUID.fromString("455ee128-0b96-4b49-a4c0-3c30d4c8af01"))).thenReturn(exam);
+		var expectedBody = "";
+		mockMvc.perform(get("/api/exams/455ee128-0b96-4b49-a4c0-3c30d4c8af01"))
+				.andExpect(status().isNotFound())
+				.andExpect(content().string(expectedBody));
+	}
+	
+	@Test
+	public void testGetById_WhenFound_ExpectHTTP404AndEmptyJSONObject() throws Exception {
+		var exam = Optional.of(Exam.builder()
+				.id(UUID.fromString("455ee128-0b96-4b49-a4c0-3c30d4c8af01"))
+				.title("World War 1 basic Exam")
+				.signature("History")
+				.minimunApproval(70.0)
+				.duration(100)
+				.build());
+		when(examRepository.findById(UUID.fromString("455ee128-0b96-4b49-a4c0-3c30d4c8af01"))).thenReturn(exam);
+		var expectedBody = getResourceAsString("examObject.json");
+		mockMvc.perform(get("/api/exams/455ee128-0b96-4b49-a4c0-3c30d4c8af01"))
 				.andExpect(status().isOk())
 				.andExpect(content().string(expectedBody));
 	}
@@ -80,7 +117,5 @@ public class ExamControllerTest {
 
 	@MockBean
 	private IExamRepository examRepository;
-
-	private static final String GET_EXAMS_ENDPOINT = "/api/exams";
 
 }
